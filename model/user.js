@@ -55,7 +55,7 @@ module.exports = class User{
     addOrders(){
         const db = getDb();
         return db.collection("orders").insertOne(this.cart).then().catch(e=>console.log(e))
-    }
+    } //
     //bbn
 
 
