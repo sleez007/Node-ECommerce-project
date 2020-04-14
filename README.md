@@ -1,4 +1,4 @@
-# A Node Js ECOMMERCE DUMMY PROJECT
+# A Nodejs dummy E-commerce project
 
 > NOTE : This project is still in progress.
 
