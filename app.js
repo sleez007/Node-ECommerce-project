@@ -2,12 +2,10 @@ const path = require('path');
 
 const express = require('express');
 const bodyParser = require("body-parser");
-//const expressHbs = require("express-handlebars"); 
+const mongoose =  require('mongoose');
 
 const adminRoutes = require('./routes/admin');
  const shopRoutes = require("./routes/shop");
-
-const mongoConnect= require('./util/database').mongoConnect;
 
 const errorController = require('./controllers/error');
 
@@ -41,9 +39,9 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(express.static(path.join(__dirname,"public")))
 
 app.use((req,res,next)=>{
-    User.findById("5e9381fd574842e36d5a563b").then(user=>{
+    User.findOne().then(user=>{
         //adding our user to the request object
-        req.user = new User(user.name,user.email,user.cart, user._id );
+        req.user = user;
         next();
     }).catch(e=>console.log(e))
 });
@@ -54,18 +52,45 @@ app.use('/admin',adminRoutes);
 //404 route page
 app.use('/',errorController.get404);
 
-mongoConnect(()=>{
-    User.findById("5e9381fd574842e36d5a563b").then(user=>{
-        if(user){
-            return Promise.resolve(user);
-        }else{
-            return new User("sleez360", "etokakingsley@gmail.com",{items:[]}).save()
-        }
-    })
-    .then(userData=>{
-        app.listen(process.env.port || 3000);
-    })
-    .catch(e=>console.log(e))
+mongoose.connect('mongodb://localhost/e-store', {useNewUrlParser: true, useUnifiedTopology: true})
+.then(
+    
+    result => {
+        User.findOne().then(
+            user=>{
+                if(!user){
+                    const user = new User({
+                        name: "Etoka Kingsley",
+                        email : "etokakingsley@gmail.com",
+                        cart : {
+                            items : []
+                        }
+                    })
+                    return user.save()
+                }
+                return Promise.resolve(user)
+            }
+        ).then(
+            result=>app.listen(process.env.port || 3000)
+        ).catch(e=>console.log(e))
+        
+    }
+).catch(
+    e=>console.log(e)
+)
+
+// mongoConnect(()=>{
+//     User.findById("5e9381fd574842e36d5a563b").then(user=>{
+//         if(user){
+//             return Promise.resolve(user);
+//         }else{
+//             return new User("sleez360", "etokakingsley@gmail.com",{items:[]}).save()
+//         }
+//     })
+//     .then(userData=>{
+//         app.listen(process.env.port || 3000);
+//     })
+//     .catch(e=>console.log(e))
    
-})
+// })
 

@@ -11,7 +11,7 @@ exports.getAddProduct =(req,res,next)=>{
 //CALLBACK FUNCTION FOR ADD PRODUCT ROUTE
 exports.postAddProduct = (req , res, next) => {
     const {title, imageUrl, price, description } = req.body;
-    return new Product(title,price,description,imageUrl,null,req.user._id).save().then(
+    return new Product({title: title, imageUrl: imageUrl, description : description, price : price, userId: req.user._id}).save().then(
         result =>{
             console.log(result);
             res.redirect("/");
@@ -42,22 +42,37 @@ exports.getEditProduct =(req,res,next)=>{
 
 exports.postEditProduct =(req,res,next)=>{
     const {productId, title,price,imageUrl, description } = req.body;
-    return new Product(title,price,description,imageUrl,productId,null).save()
-    .then(result => {
+
+    Product.findById(productId).then(
+        product =>{
+            product.title =title;
+            product.price = price;
+            product.description = description;
+            product.imageUrl = imageUrl
+            //calling save here on document that already exists does an update in mongoose
+            return product.save()
+        }
+    ).then(result => {
         console.log('updated');
         res.redirect("/admin/products")
-    }).catch(e=>console.log(e))
+    })
+    .catch(e=>console.log(e))
 }
 
 exports.postDeleteProduct = (req, res, next) =>{
     const prodId = req.body.productId;
-    Product.deleteById(prodId).then(p=>res.redirect('/admin/products')).catch(e=>console.log(e))
+    Product.findByIdAndDelete(prodId).then(p=>res.redirect('/admin/products')).catch(e=>console.log(e))
 }
 
 exports.getProducts = (req,res,next)=>{
-
-    Product.fetchAll().then(products=>{
- 
+    //select method works like projection
+    //.populate('userId','name email') is used to pull data in relational collection referenced
+    //the first argument passed to populate is the field that needs to be populated
+    //the second argument passed to populate is projection
+    Product.find()
+    //.select('title price ').populate('userId', 'name')
+    .then(products=>{
+        console.log(products);
         res.render("admin/products",
             {
             prods: products , 
