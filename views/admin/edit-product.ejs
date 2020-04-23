@@ -4,7 +4,7 @@
 </head>
 
 <body>
-        <%- include('../includes/navigation.ejs') %>
+    <%- include('../includes/navigation.ejs') %>
 
     <main>
         <form class="product-form" action="/admin/<%if(editing) {%>edit-product<% }else{ %>add-product<% }%>" method="POST">
@@ -26,7 +26,7 @@
                
             </div>
 
-            <%if (editing) { %>
+            <% if (editing) { %>
                 <input type="hidden" value="<%= product._id %>" name="productId" />
             <% } %>
 

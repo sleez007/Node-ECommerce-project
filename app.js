@@ -3,18 +3,24 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require("body-parser");
 const mongoose =  require('mongoose');
+const session = require('express-session');
+const MongoDbSessionStore  = require('connect-mongodb-session')(session);
 
 const adminRoutes = require('./routes/admin');
- const shopRoutes = require("./routes/shop");
+const shopRoutes = require("./routes/shop");
+const authRoutes = require("./routes/auth");
 
 const errorController = require('./controllers/error');
 
 //MODELS
-const User = require("./model/user")
+const User = require('./model/user')
+
+const dbConnStr = 'mongodb://localhost/e-store'
 
 
 
 const app = express();
+const sessionStore = new MongoDbSessionStore({uri : dbConnStr, collection : 'sessions'})
 
 
 /**
@@ -26,33 +32,39 @@ const app = express();
 //TELL EXPRESS WHICH VIEW ENGINE YOU WANT TO USE
 // view engine is a defined constant in express
 //app.set("view engine", "pug");
-app.set("view engine", "ejs");
+app.set('view engine', 'ejs');
 
 //let express know where to find our views
 //BY DEFAULT THE VIEW FOLDER IS Set, WE CAN SKIP DOING THIS
-app.set("views" , "views");
+app.set('views' , 'views');
 
 app.use(bodyParser.urlencoded({extended: false}));
 
 //specify a folder express grants read access to from outside the app
 //This folder allows serving of static files like css and images
-app.use(express.static(path.join(__dirname,"public")))
+app.use(express.static(path.join(__dirname,'public')))
+
+//initialize express session
+app.use(session({secret: 'my whatever secret', resave : false, saveUninitialized : false, store: sessionStore}))
 
 app.use((req,res,next)=>{
-    User.findOne().then(user=>{
-        //adding our user to the request object
-        req.user = user;
-        next();
-    }).catch(e=>console.log(e))
+    if (!req.session.user) {
+        return next();
+    }
+    User.findById(req.session.user._id)
+    .then(user => {
+      req.user = user;
+      next();
+    })
+    .catch(err => console.log(err));
 });
 
 app.use('/admin',adminRoutes);
- app.use(shopRoutes);
-
-//404 route page
+app.use(shopRoutes);
+app.use(authRoutes);
 app.use('/',errorController.get404);
 
-mongoose.connect('mongodb://localhost/e-store', {useNewUrlParser: true, useUnifiedTopology: true})
+mongoose.connect(dbConnStr, {useNewUrlParser: true, useUnifiedTopology: true})
 .then(
     
     result => {
@@ -79,18 +91,4 @@ mongoose.connect('mongodb://localhost/e-store', {useNewUrlParser: true, useUnifi
     e=>console.log(e)
 )
 
-// mongoConnect(()=>{
-//     User.findById("5e9381fd574842e36d5a563b").then(user=>{
-//         if(user){
-//             return Promise.resolve(user);
-//         }else{
-//             return new User("sleez360", "etokakingsley@gmail.com",{items:[]}).save()
-//         }
-//     })
-//     .then(userData=>{
-//         app.listen(process.env.port || 3000);
-//     })
-//     .catch(e=>console.log(e))
-   
-// })
 
