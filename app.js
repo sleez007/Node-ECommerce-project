@@ -5,7 +5,10 @@ const bodyParser = require("body-parser");
 const mongoose =  require('mongoose');
 const session = require('express-session');
 const MongoDbSessionStore  = require('connect-mongodb-session')(session);
+const csrf = require('csurf');
+const flash = require('connect-flash');
 
+const globVal = require('./middleware/glob-val');
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
@@ -21,6 +24,9 @@ const dbConnStr = 'mongodb://localhost/e-store'
 
 const app = express();
 const sessionStore = new MongoDbSessionStore({uri : dbConnStr, collection : 'sessions'})
+
+//YOU CAN PASS IN AN OBJECT TO CONFIGURE CSRF 
+const csrfProtection = csrf()
 
 
 /**
@@ -45,7 +51,11 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(express.static(path.join(__dirname,'public')))
 
 //initialize express session
-app.use(session({secret: 'my whatever secret', resave : false, saveUninitialized : false, store: sessionStore}))
+app.use(session({secret: 'my whatever secret', resave : false, saveUninitialized : false, store: sessionStore}));
+
+//register csurf protection
+app.use(csrfProtection);
+app.use(flash());
 
 app.use((req,res,next)=>{
     if (!req.session.user) {
@@ -59,6 +69,9 @@ app.use((req,res,next)=>{
     .catch(err => console.log(err));
 });
 
+//adding global properties to our render objects for views
+app.use(globVal);
+
 app.use('/admin',adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
@@ -69,22 +82,11 @@ mongoose.connect(dbConnStr, {useNewUrlParser: true, useUnifiedTopology: true})
     
     result => {
         User.findOne().then(
-            user=>{
-                if(!user){
-                    const user = new User({
-                        name: "Etoka Kingsley",
-                        email : "etokakingsley@gmail.com",
-                        cart : {
-                            items : []
-                        }
-                    })
-                    return user.save()
-                }
-                return Promise.resolve(user)
+            result => {
+                app.listen(process.env.port || 3000);
             }
-        ).then(
-            result=>app.listen(process.env.port || 3000)
-        ).catch(e=>console.log(e))
+        ).
+       catch(e=>console.log(e))
         
     }
 ).catch(
