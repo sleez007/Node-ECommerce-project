@@ -42,28 +42,31 @@ exports.getEditProduct =(req,res,next)=>{
     }).catch(e=>console.log(e));
 }
 
-exports.postEditProduct =(req,res,next)=>{
+exports.postEditProduct =(req,res,next)=>{ 
     const {productId, title,price,imageUrl, description } = req.body;
 
     Product.findById(productId).then(
         product =>{
+            if(product.userId.toString()!== req.user._id.toString()){
+                return res.redirect('/')
+            }
             product.title =title;
             product.price = price;
             product.description = description;
             product.imageUrl = imageUrl
             //calling save here on document that already exists does an update in mongoose
-            return product.save()
+            return product.save().then(result => {
+                console.log('updated');
+                res.redirect("/admin/products")
+            }).catch(e=>console.log(e))
         }
-    ).then(result => {
-        console.log('updated');
-        res.redirect("/admin/products")
-    })
+    )
     .catch(e=>console.log(e))
 }
 
 exports.postDeleteProduct = (req, res, next) =>{
     const prodId = req.body.productId;
-    Product.findByIdAndDelete(prodId).then(p=>res.redirect('/admin/products')).catch(e=>console.log(e))
+    Product.deleteOne({_id :prodId, userId: req.user._id}).then(p=>res.redirect('/admin/products')).catch(e=>console.log(e))
 }
 
 exports.getProducts = (req,res,next)=>{
@@ -71,7 +74,7 @@ exports.getProducts = (req,res,next)=>{
     //.populate('userId','name email') is used to pull data in relational collection referenced
     //the first argument passed to populate is the field that needs to be populated
     //the second argument passed to populate is projection
-    Product.find()
+    Product.find({userId : req.user._id})
     //.select('title price ').populate('userId', 'name')
     .then(products=>{
         console.log(products);
