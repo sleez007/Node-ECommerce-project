@@ -1,11 +1,15 @@
 const Product = require('../model/product');
+const { validationResult } = require('express-validator')
 
 exports.getAddProduct =(req,res,next)=>{
 
     res.render('admin/edit-product',{
         pageTitle: "Add new Product", 
         path: "/admin/add-product",
-        editing: false
+        editing: false,
+        hasError : false,
+        errorMessage : null,
+        validationErrors :[]
         // isAuthenticated : req.session.isLoggedIn  
     });
 }
@@ -13,6 +17,26 @@ exports.getAddProduct =(req,res,next)=>{
 //CALLBACK FUNCTION FOR ADD PRODUCT ROUTE
 exports.postAddProduct = (req , res, next) => {
     const {title, imageUrl, price, description } = req.body;
+    const errors = validationResult(req)
+
+    if(!errors.isEmpty()){
+        console.log(errors.array())
+       return res.status(422).render('admin/edit-product',{ 
+            pageTitle: "Add Product", 
+            path: "/admin/edit-product",
+            editing: false,
+            hasError : true,
+            product : {
+                title : title,
+                imageUrl : imageUrl,
+                price : price,
+                description : description
+            },
+            errorMessage : errors.array()[0].msg,
+            validationErrors :errors.array()
+        });
+    }
+
     return new Product({title: title, imageUrl: imageUrl, description : description, price : price, userId: req.user._id}).save().then(
         result =>{
             console.log(result);
@@ -37,13 +61,35 @@ exports.getEditProduct =(req,res,next)=>{
              pageTitle: "Edit Product", 
              path: "/admin/edit-product",
              editing: true,
-             product : product 
+             product : product ,
+             hasError : false,
+             errorMessage : null,validationErrors :[]
          });
     }).catch(e=>console.log(e));
 }
 
 exports.postEditProduct =(req,res,next)=>{ 
     const {productId, title,price,imageUrl, description } = req.body;
+    const errors = validationResult(req)
+
+    if(!errors.isEmpty()){
+        console.log(errors.array())
+       return res.status(422).render('admin/edit-product',{ 
+            pageTitle: "Edit Product", 
+            path: "/admin/edit-product",
+            editing: true,
+            hasError : true,
+            product : {
+                title : title,
+                imageUrl : imageUrl,
+                price : price,
+                description : description,
+                _id : productId
+            },
+            errorMessage : errors.array()[0].msg,
+            validationErrors :errors.array()
+        });
+    }
 
     Product.findById(productId).then(
         product =>{

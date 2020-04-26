@@ -1,4 +1,5 @@
 const express = require("express");
+const { check, body } = require('express-validator');
 
 const adminController = require("../controllers/admin");
 const isAuth = require('../middleware/is-auth')
@@ -10,14 +11,30 @@ const router = express.Router();
  router.get('/add-product',isAuth, adminController.getAddProduct);
 
 //full route is /admin/add-product for POST VERB
-router.post("/add-product", adminController.postAddProduct);
+router.post("/add-product",isAuth,
+    [
+        body('title').isString().isLength({min: 3}).trim(),
+        body('imageUrl').isURL(),
+        body('price').isFloat(),
+        body('description').trim().isLength({min: 5, max: 500})
+    ], adminController.postAddProduct
+);
 
 router.get('/edit-product/:productId',isAuth, adminController.getEditProduct);
 
-router.post('/edit-product',isAuth,adminController.postEditProduct);
+router.post('/edit-product',isAuth,
+    [
+        body('title').isString().isLength({min: 3}).trim(),
+        body('imageUrl').isURL(),
+        body('price').isFloat(),
+        body('description').trim().isLength({min: 5, max: 500})
+    ],
+    adminController.postEditProduct
+);
 
 router.post("/delete-product",isAuth, adminController.postDeleteProduct)
 
  router.get('/products',isAuth, adminController.getProducts);
 
 module.exports = router;
+
