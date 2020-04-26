@@ -1,5 +1,6 @@
 const Product = require('../model/product');
 const { validationResult } = require('express-validator')
+const fileHelper = require('../util/file')
 
 exports.getAddProduct =(req,res,next)=>{
 
@@ -16,10 +17,12 @@ exports.getAddProduct =(req,res,next)=>{
 
 //CALLBACK FUNCTION FOR ADD PRODUCT ROUTE
 exports.postAddProduct = (req , res, next) => {
-    const {title, imageUrl, price, description } = req.body;
-    const errors = validationResult(req)
-
-    if(!errors.isEmpty()){
+    const {title, price, description } = req.body;
+    const image = req.file;
+    console.log(image)
+    const errors = validationResult(req);
+    
+    if(!errors.isEmpty() || !image){
         console.log(errors.array())
        return res.status(422).render('admin/edit-product',{ 
             pageTitle: "Add Product", 
@@ -28,14 +31,15 @@ exports.postAddProduct = (req , res, next) => {
             hasError : true,
             product : {
                 title : title,
-                imageUrl : imageUrl,
                 price : price,
                 description : description
             },
-            errorMessage : errors.array()[0].msg,
-            validationErrors :errors.array()
+            errorMessage :(image)? errors.array()[0].msg : "Attached file is not an image",
+            validationErrors : (image)?  errors.array() : []
         });
     }
+
+    const imageUrl = image.path;
 
     return new Product({title: title, imageUrl: imageUrl, description : description, price : price, userId: req.user._id}).save().then(
         result =>{
@@ -81,6 +85,7 @@ exports.getEditProduct =(req,res,next)=>{
 
 exports.postEditProduct =(req,res,next)=>{ 
     const {productId, title,price,imageUrl, description } = req.body;
+    const image = req.file;
     const errors = validationResult(req)
 
     if(!errors.isEmpty()){
@@ -92,7 +97,6 @@ exports.postEditProduct =(req,res,next)=>{
             hasError : true,
             product : {
                 title : title,
-                imageUrl : imageUrl,
                 price : price,
                 description : description,
                 _id : productId
@@ -110,7 +114,11 @@ exports.postEditProduct =(req,res,next)=>{
             product.title =title;
             product.price = price;
             product.description = description;
-            product.imageUrl = imageUrl
+            if(image){
+                fileHelper.deleteFile(product.imageUrl)
+                product.imageUrl = image.path; 
+            }
+            
             //calling save here on document that already exists does an update in mongoose
             return product.save().then(result => {
                 console.log('updated');
@@ -122,18 +130,23 @@ exports.postEditProduct =(req,res,next)=>{
         const error = new Error(e)
         error.httpStatusCode = 500
         next(error);
-        console.log(e); res.redirect('/500')
     });
 }
 
 exports.postDeleteProduct = (req, res, next) =>{
     const prodId = req.body.productId;
-    Product.deleteOne({_id :prodId, userId: req.user._id}).then(p=>res.redirect('/admin/products')).catch(e=>{
-        const error = new Error(e)
-        error.httpStatusCode = 500
+    Product.findById(prodId).then(product=>{
+        if(!product) return next(new Error('Product Not found'));
+        fileHelper.deleteFile(product.imageUrl)
+        Product.deleteOne({_id :prodId, userId: req.user._id}).then(p=>res.redirect('/admin/products')).catch(e=>console.log(e))
+    }).catch(e=>{
+        const error = new Error(e);
+        error.httpStatusCode = 500;
         next(error);
-        console.log(e); res.redirect('/500')
+
     });
+
+    
 }
 
 exports.getProducts = (req,res,next)=>{

@@ -7,6 +7,8 @@ const session = require('express-session');
 const MongoDbSessionStore  = require('connect-mongodb-session')(session);
 const csrf = require('csurf');
 const flash = require('connect-flash');
+const multer = require('multer');
+const { fileStorage, fileFilter } = require('./middleware/multer-config');
 
 const globVal = require('./middleware/glob-val');
 const adminRoutes = require('./routes/admin');
@@ -44,11 +46,14 @@ app.set('view engine', 'ejs');
 //BY DEFAULT THE VIEW FOLDER IS Set, WE CAN SKIP DOING THIS
 app.set('views' , 'views');
 
+
 app.use(bodyParser.urlencoded({extended: false}));
+app.use(multer({storage : fileStorage, fileFilter : fileFilter}).single('image'));
 
 //specify a folder express grants read access to from outside the app
 //This folder allows serving of static files like css and images
 app.use(express.static(path.join(__dirname,'public')))
+app.use('/images',express.static(path.join(__dirname,'images')))
 
 //initialize express session
 app.use(session({secret: 'my whatever secret', resave : false, saveUninitialized : false, store: sessionStore}));
