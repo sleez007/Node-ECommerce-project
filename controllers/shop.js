@@ -18,7 +18,12 @@ exports.getProduct = (req, res, next )=>{
         (product)=>{
            res.render('shop/product-detail',{path:'/products', pageTitle:product.title, product: product  })
         }
-    ).catch(e=>console.log(e));
+    ).catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });;
 }
 
 exports.getIndex =(req, res, next)=>{
@@ -30,7 +35,12 @@ exports.getIndex =(req, res, next)=>{
            path:'/',  
        })
        //csurf Token is automatically added to every req, and has to be passed into our views
-    }).catch(err=>console.log(err));
+    }).catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });;
 }
 
 exports.getCart = (req, res, next) => {
@@ -40,7 +50,12 @@ exports.getCart = (req, res, next) => {
         res.render('shop/cart',{path:'/cart', pageTitle :'Your Cart', products : products });
     }
         
-    ).catch(e=>console.log(e))
+    ).catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });
 }
 
 //ADD NEW ITEM TO CART/ OR UPDATE EXISTING ITEM
@@ -48,14 +63,24 @@ exports.postCart = (req, res, next)=> {
      const prodId = req.body.productId;
     Product.findById(prodId).then(prod =>req.user.addToCart(prod))
     .then(result=>res.redirect('/cart'))
-    .catch(e=>console.log(e));
+    .catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });;
 }
 
 exports.postCartDeleteProduct = (req,res,next)=>{
     const prodId = req.body.productId;
     req.user.removeFromCart(prodId) 
     .then(result=>res.redirect('/cart'))
-    .catch(e=>console.log(e))
+    .catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });
 }
 
 exports.postOrder = (req, res, next) => {
@@ -73,13 +98,23 @@ exports.postOrder = (req, res, next) => {
     }).then(result=>{
         return req.user.clearCart()
         
-    }).then(result=>res.redirect('/orders')).catch(e=>console.log(e));
+    }).then(result=>res.redirect('/orders')).catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });;
 }
 
 exports.getOrders= (req, res, next) => {
     Order.find({'user.userId': req.user._id})
-    .then(orders=>res.render('shop/orders',{path:'/orders', pageTitle :'Your Orders',orders : orders})).catch(e=>console.log(e))
-    ;
+    .then(orders=>res.render('shop/orders',{path:'/orders', pageTitle :'Your Orders',orders : orders}))
+    .catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });
 }
 
 exports.getCheckout = (req, res, next) => {

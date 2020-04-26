@@ -63,10 +63,15 @@ app.use((req,res,next)=>{
     }
     User.findById(req.session.user._id)
     .then(user => {
+        if(!user){
+           return next();
+        }
       req.user = user;
       next();
     })
-    .catch(err => console.log(err));
+    .catch(err =>{ 
+        throw new Error(err);
+    });
 });
 
 //adding global properties to our render objects for views
@@ -75,20 +80,18 @@ app.use(globVal);
 app.use('/admin',adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
-app.use('/',errorController.get404);
+
+app.get('/500',errorController.get500)
+app.use(errorController.get404);
+
+//ERROR HANDLING MIDDLEWARE
+app.use((error,req, res, next)=>{
+    res.status(error.httpStatusCode).redirect('/500');
+})
 
 mongoose.connect(dbConnStr, {useNewUrlParser: true, useUnifiedTopology: true})
 .then(
-    
-    result => {
-        User.findOne().then(
-            result => {
-                app.listen(process.env.port || 3000);
-            }
-        ).
-       catch(e=>console.log(e))
-        
-    }
+    result => app.listen(process.env.port || 3000)
 ).catch(
     e=>console.log(e)
 )

@@ -47,6 +47,7 @@ exports.postLogin = (req, res, next) => {
         (user)=>{
 
             if(!user){
+                
                 return res.status(422).render('auth/login', {
                     path:'/login',
                     pageTitle:'Login',
@@ -108,7 +109,12 @@ exports.postSignup = (req, res, next) => {
             res.redirect('/login')
             return transporter.sendMail(emailInfo)
         }
-        ).then(stat=>{console.log(stat)}).catch(e=>console.log(e));
+        ).then(stat=>{console.log(stat)}).catch(e=>{
+            const error = new Error(e)
+            error.httpStatusCode = 500
+            next(error);
+            console.log(e); res.redirect('/500')
+        });;
         
 
 };
@@ -183,7 +189,12 @@ exports.postReset = (req, res, next) =>{
                     }
                 ).catch(e=>console.log(e));
             }
-        ).catch(e=>console.log(e))
+        ).catch(e=>{
+            const error = new Error(e)
+            error.httpStatusCode = 500
+            next(error);
+            console.log(e); res.redirect('/500')
+        });
     })
 
     
@@ -212,7 +223,12 @@ exports.getNewPassword = (req, res, next) => {
                 res.redirect('/')
             }
         }
-    ).catch(e=>console.log(e))
+    ).catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });
 };
 
 exports.postNewPassword = (req, res, next) =>{
