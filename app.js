@@ -10,6 +10,9 @@ const flash = require('connect-flash');
 const multer = require('multer');
 const { fileStorage, fileFilter } = require('./middleware/multer-config');
 
+const shopController = require('./controllers/shop');
+const isAuth = require('./middleware/is-auth');
+
 const globVal = require('./middleware/glob-val');
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require("./routes/shop");
@@ -21,7 +24,7 @@ const errorController = require('./controllers/error');
 const User = require('./model/user')
 
 const dbConnStr = 'mongodb://localhost/e-store'
-
+//const dbConnStr= 'mongodb+srv://sleez:sleez@cluster0-a0fnl.mongodb.net/test?retryWrites=true&w=majority'
 
 
 
@@ -59,8 +62,7 @@ app.use('/images',express.static(path.join(__dirname,'images')))
 //initialize express session
 app.use(session({secret: 'my whatever secret', resave : false, saveUninitialized : false, store: sessionStore}));
 
-//register csurf protection
-app.use(csrfProtection);
+
 app.use(flash());
 
 app.use((req,res,next)=>{
@@ -81,7 +83,14 @@ app.use((req,res,next)=>{
 });
 
 //adding global properties to our render objects for views
-app.use(globVal);
+app.use(globVal.globVal);
+
+//this route skips csrf protection becos it was added before csrf
+app.post('/create-order',isAuth, shopController.postOrder);
+
+//register csurf protection
+app.use(csrfProtection);
+app.use(globVal.globCsrf);
 
 app.use('/admin',adminRoutes);
 app.use(shopRoutes);

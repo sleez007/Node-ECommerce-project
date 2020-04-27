@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path')
 const rootDir = require("../util/path");
 const PDFDocument = require('pdfkit');
+const stripe = require('stripe')('YOUR_STRIPE_SECRET_KEY');
 
 const ITEMS_PER_PAGE = 1;
 
@@ -45,7 +46,6 @@ exports.getProduct = (req, res, next )=>{
         const error = new Error(e)
         error.httpStatusCode = 500
         next(error);
-        console.log(e); res.redirect('/500')
     });;
 }
 
@@ -89,7 +89,6 @@ exports.getCart = (req, res, next) => {
         const error = new Error(e)
         error.httpStatusCode = 500
         next(error);
-        console.log(e); res.redirect('/500')
     });
 }
 
@@ -102,7 +101,6 @@ exports.postCart = (req, res, next)=> {
         const error = new Error(e)
         error.httpStatusCode = 500
         next(error);
-        console.log(e); res.redirect('/500')
     });;
 }
 
@@ -114,13 +112,16 @@ exports.postCartDeleteProduct = (req,res,next)=>{
         const error = new Error(e)
         error.httpStatusCode = 500
         next(error);
-        console.log(e); res.redirect('/500')
     });
 }
 
 exports.postOrder = (req, res, next) => {
+    const token = req.body.stripeToken; // Using Express
+    let totalSum = 0;
     req.user.populate('cart.items.productId').execPopulate().then(user => {
-       
+        user.cart.items.forEach(p => {
+            totalSum += p.quantity * p.productId.price;
+          });
         const products = user.cart.items.map(i=>({quantity : i.quantity, product: {...i.productId._doc}}));
         const order = new Order({
             user : {
@@ -131,6 +132,13 @@ exports.postOrder = (req, res, next) => {
         });
        return order.save();
     }).then(result=>{
+        const charge = stripe.charges.create({
+            amount: totalSum * 100,
+            currency: 'usd',
+            description: 'Demo Order',
+            source: token,
+            metadata: { order_id: result._id.toString() }
+          });
         return req.user.clearCart()
         
     }).then(result=>res.redirect('/orders')).catch(e=>{
@@ -153,10 +161,24 @@ exports.getOrders= (req, res, next) => {
 }
 
 exports.getCheckout = (req, res, next) => {
-    res.render('shop/checkout', {
-        path:'/checkout',
-        pageTitle:'Checkout'
-    })
+    req.user.populate('cart.items.productId').execPopulate().then(user => {
+        console.log(user.cart.items);
+        const products =user.cart.items;
+        let total = 0;
+        products.forEach(p=>{
+            total+= p.quantity*p.productId.price;
+        })
+        res.render('shop/checkout',
+            {path:'/checkout', pageTitle :'Checkout', products : products, totalSum : total }
+        );
+    }
+        
+    ).catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+        console.log(e); res.redirect('/500')
+    });
 }
 
 
