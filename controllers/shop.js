@@ -5,15 +5,34 @@ const path = require('path')
 const rootDir = require("../util/path");
 const PDFDocument = require('pdfkit');
 
+const ITEMS_PER_PAGE = 1;
+
 exports.getProducts = (req,res,next)=>{
-    Product.find().then((product)=>{
-        res.render("shop/product-list",
-         {
-            prods: product , 
-            pageTitle :'All Products', 
-            path:'/products' 
+    const page = +req.query.page || 1;
+    let totalItems = 0;
+    Product.find().countDocuments().then(numProducts=>{
+        totalItems = numProducts;
+        Product.find().skip((page-1)* ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE).then((product)=>{
+            res.render("shop/product-list",
+            {
+                prods: product , 
+                pageTitle :'All Products', 
+                path:'/products',
+                currentPage : page ,
+                hasNextPage :ITEMS_PER_PAGE * page < totalItems,
+                hasPreviousPage : page > 1,
+                nextPage : page+1,
+                previousPage : page-1,
+                lastPage :Math.ceil(totalItems/ ITEMS_PER_PAGE)
+            })
+            //csurf Token is automatically added to every req, and has to be passed into our views
         })
-    }).catch(err=>console.log(err))
+    })
+   .catch(e=>{
+        const error = new Error(e)
+        error.httpStatusCode = 500
+        next(error);
+    });
 }
 
 exports.getProduct = (req, res, next )=>{
@@ -31,20 +50,32 @@ exports.getProduct = (req, res, next )=>{
 }
 
 exports.getIndex =(req, res, next)=>{
-    Product.find().then((product)=>{
-        res.render("shop/index",
-        {
-           prods: product , 
-           pageTitle :'Shop', 
-           path:'/',  
-       })
-       //csurf Token is automatically added to every req, and has to be passed into our views
-    }).catch(e=>{
+    const page = +req.query.page || 1;
+    let totalItems = 0;
+    Product.find().countDocuments().then(numProducts=>{
+        totalItems = numProducts;
+        Product.find().skip((page-1)* ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE).then((product)=>{
+            res.render("shop/index",
+            {
+                prods: product , 
+                pageTitle :'Shop', 
+                path:'/',
+                currentPage : page ,
+                hasNextPage :ITEMS_PER_PAGE * page < totalItems,
+                hasPreviousPage : page > 1,
+                nextPage : page+1,
+                previousPage : page-1,
+                lastPage :Math.ceil(totalItems/ ITEMS_PER_PAGE)
+            })
+            //csurf Token is automatically added to every req, and has to be passed into our views
+        })
+    })
+   .catch(e=>{
         const error = new Error(e)
         error.httpStatusCode = 500
         next(error);
         console.log(e); res.redirect('/500')
-    });;
+    });
 }
 
 exports.getCart = (req, res, next) => {
@@ -149,7 +180,7 @@ exports.getInvoice = (req, res, next)=>{
         //     res.setHeader('Content-Disposition', `inline; filename="${invoiceName}"`);
         //     res.send(data)
         // })
-        
+
         const pdfDoc = new PDFDocument();
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="${invoiceName}"`);

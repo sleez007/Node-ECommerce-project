@@ -24,6 +24,7 @@ const dbConnStr = 'mongodb://localhost/e-store'
 
 
 
+
 const app = express();
 const sessionStore = new MongoDbSessionStore({uri : dbConnStr, collection : 'sessions'})
 
