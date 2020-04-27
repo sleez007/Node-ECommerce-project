@@ -133,18 +133,15 @@ exports.postEditProduct =(req,res,next)=>{
     });
 }
 
-exports.postDeleteProduct = (req, res, next) =>{
-    const prodId = req.body.productId;
+exports.deleteProduct = (req, res, next) =>{
+    const prodId = req.params.productId;
     Product.findById(prodId).then(product=>{
-        if(!product) return next(new Error('Product Not found'));
+        if(!product){ return next(new Error('Product Not found'));}
         fileHelper.deleteFile(product.imageUrl)
-        Product.deleteOne({_id :prodId, userId: req.user._id}).then(p=>res.redirect('/admin/products')).catch(e=>console.log(e))
-    }).catch(e=>{
-        const error = new Error(e);
-        error.httpStatusCode = 500;
-        next(error);
-
-    });
+        return res.status(200).json({message : 'Success!'});
+        Product.deleteOne({_id :prodId, userId: req.user._id}).then(p=>
+         res.status(200).json({message : 'Success!'})).catch(res.status(500).json({message :'Deleting Product Failed'}))
+    }).catch(e=>res.status(500).json({message :'Deleting Product Failed'}));
 
     
 }
